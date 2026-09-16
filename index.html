@@ -290,6 +290,38 @@
   }
   .rec-basso .rec-title { color: var(--sage); }
 
+  .binary-note {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 18px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .binary-note .binary-label {
+    font-size: 12.5px;
+    color: var(--ink-muted);
+    font-weight: 500;
+  }
+  .binary-note .binary-badge {
+    font-family: 'Fraunces', serif;
+    font-size: 14.5px;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: 20px;
+  }
+  .binary-badge.badge-si {
+    background: var(--crimson-light);
+    color: var(--crimson);
+  }
+  .binary-badge.badge-no {
+    background: var(--sage-light);
+    color: var(--sage);
+  }
+
   footer {
     margin-top: 44px;
     padding-top: 20px;
@@ -394,10 +426,15 @@
         <div class="rec-body" id="rec-body">Inserire i dati del paziente per ottenere la raccomandazione.</div>
       </div>
     </div>
+
+    <div class="binary-note" id="binary-box">
+      <span class="binary-label">Vista sintetica a due livelli</span>
+      <span class="binary-badge" id="binary-badge">—</span>
+    </div>
   </div>
 
   <footer>
-    <p><strong>Basi statistiche:</strong> modello ADP (3 predittori: età, emoglobina, insufficienza mitralica) — AUC corretta per ottimismo 0,723; modello AA (5 predittori: piastrine nadir, pregresso IMA, età, scompenso cardiaco, CPK picco) — AUC corretta 0,690. Soglie di classificazione derivate dall'indice di Youden su ciascun modello (ADP 25%, AA 30%), arrotondate a valori clinicamente memorizzabili.</p>
+    <p><strong>Basi statistiche:</strong> modello ADP (3 predittori: età, emoglobina, insufficienza mitralica) — AUC corretta per ottimismo 0,723; modello AA (5 predittori: piastrine nadir, pregresso IMA, età, scompenso cardiaco, CPK picco) — AUC corretta 0,690. Soglie di classificazione pari al valore esatto dell'indice di Youden su ciascun modello (ADP 25,6%, AA 27,9%).</p>
     <p><strong>Limiti:</strong> strumento derivato da una singola coorte monocentrica di 152 pazienti, con validazione solo interna (bootstrap). Da intendersi come supporto al giudizio clinico, non come sostituto di esso.</p>
   </footer>
 
@@ -443,8 +480,8 @@
     const logitAA = -2.540880 - 0.007902*plt + 1.004411*state.ami + 0.034548*eta + 0.644677*state.hf + 0.001068*cpk;
     const pAA = sigmoid(logitAA);
 
-    const SOGLIA_ADP = 0.25;
-    const SOGLIA_AA = 0.30;
+    const SOGLIA_ADP = 0.2563;
+    const SOGLIA_AA = 0.2792;
     const adpAlto = pADP >= SOGLIA_ADP;
     const aaAlto = pAA >= SOGLIA_AA;
 
@@ -454,27 +491,37 @@
     document.getElementById('p-aa-bar').style.width = Math.min(pAA*100, 100) + '%';
     document.getElementById('p-adp-bar').style.background = adpAlto ? 'var(--crimson)' : 'var(--sage)';
     document.getElementById('p-aa-bar').style.background = aaAlto ? 'var(--crimson)' : 'var(--sage)';
-    document.getElementById('p-adp-flag').textContent = adpAlto ? `Sopra soglia (${(SOGLIA_ADP*100).toFixed(0)}%)` : `Sotto soglia (${(SOGLIA_ADP*100).toFixed(0)}%)`;
+    document.getElementById('p-adp-flag').textContent = adpAlto ? `Sopra soglia (${(SOGLIA_ADP*100).toFixed(1)}%)` : `Sotto soglia (${(SOGLIA_ADP*100).toFixed(1)}%)`;
     document.getElementById('p-adp-flag').className = 'prob-flag ' + (adpAlto ? 'flag-alto' : 'flag-basso');
-    document.getElementById('p-aa-flag').textContent = aaAlto ? `Sopra soglia (${(SOGLIA_AA*100).toFixed(0)}%)` : `Sotto soglia (${(SOGLIA_AA*100).toFixed(0)}%)`;
+    document.getElementById('p-aa-flag').textContent = aaAlto ? `Sopra soglia (${(SOGLIA_AA*100).toFixed(1)}%)` : `Sotto soglia (${(SOGLIA_AA*100).toFixed(1)}%)`;
     document.getElementById('p-aa-flag').className = 'prob-flag ' + (aaAlto ? 'flag-alto' : 'flag-basso');
 
     const recBox = document.getElementById('rec-box');
     const recTitle = document.getElementById('rec-title');
     const recBody = document.getElementById('rec-body');
+    const binaryBadge = document.getElementById('binary-badge');
 
     if (adpAlto && aaAlto) {
       recBox.className = 'recommendation rec-forte';
       recTitle.textContent = 'Test fortemente raccomandato';
-      recBody.textContent = "Probabilità elevata di non-risposta su entrambe le vie farmacologiche. In questo profilo, nella coorte di derivazione, il 65,1% dei pazienti presentava un'anomalia ad almeno un test.";
+      recBody.textContent = "Probabilità elevata di non-risposta su entrambe le vie farmacologiche. In questo profilo, nella coorte di derivazione, il 65,2% dei pazienti presentava un'anomalia ad almeno un test.";
     } else if (adpAlto || aaAlto) {
       recBox.className = 'recommendation rec-moderato';
       recTitle.textContent = 'Test moderatamente raccomandato';
-      recBody.textContent = "Probabilità elevata di non-risposta su una sola via farmacologica. Nella coorte di derivazione, il 51,0% dei pazienti in questo profilo presentava un'anomalia ad almeno un test.";
+      recBody.textContent = "Probabilità elevata di non-risposta su una sola via farmacologica. Nella coorte di derivazione, il 51,1% dei pazienti in questo profilo presentava un'anomalia ad almeno un test.";
     } else {
       recBox.className = 'recommendation rec-basso';
       recTitle.textContent = 'Non evidenza di indicazione al test';
-      recBody.textContent = "Probabilità di non-risposta contenuta su entrambe le vie. Nella coorte di derivazione, il 24,1% dei pazienti in questo profilo presentava comunque un'anomalia ad almeno un test: il giudizio clinico resta rilevante.";
+      recBody.textContent = "Probabilità di non-risposta contenuta su entrambe le vie. Nella coorte di derivazione, il 23,7% dei pazienti in questo profilo presentava comunque un'anomalia ad almeno un test: il giudizio clinico resta rilevante.";
+    }
+
+    // Vista sintetica a due livelli: RACCOMANDATO se almeno una via e' sopra soglia
+    if (adpAlto || aaAlto) {
+      binaryBadge.textContent = 'RACCOMANDATO';
+      binaryBadge.className = 'binary-badge badge-si';
+    } else {
+      binaryBadge.textContent = 'NON RACCOMANDATO';
+      binaryBadge.className = 'binary-badge badge-no';
     }
   }
 
